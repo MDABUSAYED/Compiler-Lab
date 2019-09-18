@@ -1,0 +1,302 @@
+%{
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+int var=0,lab=0;
+char *code1()
+{
+      	char a[10];
+     	char b[10];
+	char *str = (char *) malloc(sizeof(char) * 10);
+	a[0]='t';
+	a[1]=0;
+	var++;
+	snprintf(b, sizeof(b), "%d", var);
+    	strcat(a,b);
+    	strcpy(str,a);
+        return str;
+}
+char *level()
+{
+      	char a[10];
+     	char b[10];
+	char *str = (char *) malloc(sizeof(char) * 10);
+	a[0]='l';
+	a[1]='a';
+	a[2]='b';
+	a[3]='_';
+	a[4]=0;
+	lab++;
+	snprintf(b, sizeof(b), "%d", lab);
+    	strcat(a,b);
+    	strcpy(str,a);
+	strcat(str," :");
+        return str;
+}
+%}
+%union { 
+     char * dval;
+     struct {
+     char *place;
+     char *code[100];
+  }node;
+}
+%token <dval> WHILE
+%token <dval> IF
+%token <dval> ELSE
+%token <node> NUMBER
+%token <node> ID
+%type <node> nosignfactor
+%type <node> factor
+%type <node> factor1
+%type <node> term
+%type <node> term1
+%type <node> simple_expression
+%type <node> expression
+%type <node> statment
+%type <node> if_stmt
+%type <node> while_stmt
+%type <node> stat
+%type <node> statment_block
+%left '-' '+'
+%left '*' '/'
+%nonassoc UMINUS
+%nonassoc IFX
+%nonassoc ELSE
+%%
+start: statment_block  { int i; for(i=0;$<node.code[i]>1!=NULL;i++) printf("%s \n",$<node.code[i]>1); }
+;
+statment_block: '{' stat '}'   { $<node>$=$<node>2; }
+	;
+stat: statment     { $<node>$=$<node>1;  }
+	| stat  statment  { int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>2!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>2;
+				 $<node.code[i+j]>$=NULL;
+			  }
+	;
+statment:  ID '=' expression ';' {  int i=0;
+				    for(i=0;$<node.code[i]>3!=NULL;i++)   $<node.code[i]>$=$<node.code[i]>3;
+				    char *str; str=strdup($<node.place>1);
+				    strcat(str," = ");   strcat(str,$<node.place>3);
+                                    $<node.code[i]>$=strdup(str); 
+				    $<node.code[i+1]>$=NULL;
+				 }
+	|   while_stmt          { $<node>$=$<node>1; }
+	|   if_stmt             { $<node>$=$<node>1; }
+	;
+while_stmt: WHILE '(' expression ')'  statment_block   { $<node.code[0]>$=level();
+							 int i=0,j=0; for(i=1;$<node.code[j]>3!=NULL;j++,i++) $<node.code[i]>$=$<node.code[j]>3;
+							 char *str,*str1,*str2; str1=level();
+							 str=strdup("if ");strcat(str,$<node.place>3); strcat(str,"= 0 goto "); strcat(str,str1);
+							 $<node.code[i]>$=strdup(str);
+							 for(j=0;$<node.code[j]>5!=NULL;j++) $<node.code[i+j+1]>$=$<node.code[j]>5;
+							 str2=strdup("goto "); strcat(str2,$<node.code[0]>$);
+							 $<node.code[i+j+1]>$=strdup(str2);
+						   	 $<node.code[i+j+2]>$=strdup(str1);
+							 $<node.code[i+j+3]>$=NULL;
+						       }
+;
+if_stmt: IF '(' expression ')' statment_block %prec IFX  {  int i=0,j=0; for(i=0;$<node.code[i]>3!=NULL;i++) $<node.code[i]>$=$<node.code[i]>3;
+							    char *str,*str1,*str2; str1=level();
+							    str=strdup("if ");strcat(str,$<node.place>3); strcat(str," = 0 goto ");
+							    strcat(str,str1); $<node.code[i]>$=strdup(str);
+							    $<node.code[i]>$=strdup(str); 
+							    for(j=0;$<node.code[j]>5!=NULL;j++) $<node.code[i+j+1]>$=$<node.code[j]>5;
+							    $<node.code[i+j+1]>$=str1;
+							    $<node.code[i+j+2]>$=NULL;
+							 }
+       | IF '(' expression ')' statment_block ELSE statment_block  { int i=0,j=0,k=0; for(i=0;$<node.code[i]>3!=NULL;i++) 
+								     $<node.code[i]>$=$<node.code[i]>3;
+							    	     char *str,*str1,*str2,*str3; str1=level();str2=level();
+							    	     str=strdup("if ");strcat(str,$<node.place>3); strcat(str," = 0 goto ");
+							    	     strcat(str,str1); $<node.code[i]>$=strdup(str);
+								     for(j=0;$<node.code[j]>5!=NULL;j++) $<node.code[i+j+1]>$=$<node.code[j]>5;
+							    	     /*$<node.code[i]>$=strdup(str);*/
+								     str3=strdup("goto "); strcat(str3,str2);
+								     $<node.code[i+j+1]>$=strdup(str3); 
+								     $<node.code[i+j+2]>$=str1; 
+							             for(k=0;$<node.code[k]>7!=NULL;k++) $<node.code[i+k+j+3]>$=$<node.code[k]>7;
+							    	     $<node.code[i+j+k+3]>$=str2;
+							    	     $<node.code[i+j+k+4]>$=NULL;
+								   }
+;
+expression     : simple_expression  { $<node>$=$<node>1;     }
+	|  simple_expression '=' '=' simple_expression   { $<node.place>$=code1();
+				 			   int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 			   for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 			   char *str ;   str=strdup($<node.place>$);  strcat(str," = ");
+                                                           strcat(str,$<node.place>1); strcat(str ," == "); strcat(str,$<node.place>4);
+                                 			   $<node.code[i+j]>$=strdup(str); 
+				 			   $<node.code[i+j+1]>$=NULL;
+							 }
+	|  simple_expression '!' '=' simple_expression   { $<node.place>$=code1();
+				 			   int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 			   for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 			   char *str ;   str=strdup($<node.place>$);  strcat(str," = ");
+                                                           strcat(str,$<node.place>1); strcat(str ," != "); strcat(str,$<node.place>4);
+                                 			   $<node.code[i+j]>$=strdup(str); 
+				 			   $<node.code[i+j+1]>$=NULL;
+							 }
+	|  simple_expression '>'  simple_expression	 { $<node.place>$=code1();
+				 			   int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 			   for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 			   char *str ;   str=strdup($<node.place>$);  strcat(str," = ");
+                                                           strcat(str,$<node.place>1); strcat(str ," > "); strcat(str,$<node.place>3);
+                                 			   $<node.code[i+j]>$=strdup(str); 
+				 			   $<node.code[i+j+1]>$=NULL;
+							 }
+	|  simple_expression '<' simple_expression	 { $<node.place>$=code1();
+				 			   int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 			   for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 			   char *str ;   str=strdup($<node.place>$);  strcat(str," = ");
+                                                           strcat(str,$<node.place>1); strcat(str ," == "); strcat(str,$<node.place>3);
+                                 			   $<node.code[i+j]>$=strdup(str); 
+				 			   $<node.code[i+j+1]>$=NULL;
+							 }
+	|  simple_expression '<' '=' simple_expression   { $<node.place>$=code1();
+				 			   int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 			   for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 			   char *str ;   str=strdup($<node.place>$);  strcat(str," = ");
+                                                           strcat(str,$<node.place>1); strcat(str ," <= "); strcat(str,$<node.place>4);
+                                 			   $<node.code[i+j]>$=strdup(str); 
+				 			   $<node.code[i+j+1]>$=NULL;
+							 }
+	|  simple_expression '>' '=' simple_expression   { $<node.place>$=code1();
+				 			   int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 			   for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 			   char *str ;   str=strdup($<node.place>$);  strcat(str," = ");
+                                                           strcat(str,$<node.place>1); strcat(str ," >= "); strcat(str,$<node.place>4);
+                                 			   $<node.code[i+j]>$=strdup(str); 
+				 			   $<node.code[i+j+1]>$=NULL;
+							 }
+;
+simple_expression: term               { $<node>$=$<node>1;     }
+	|   term  '+' term1    { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str ;/*= (char *) malloc(sizeof(char) * 20); */
+				 str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," + "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	|   term  '-' term1    { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," - "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	|   term  '|' '|' term1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," || "); strcat(str,$<node.place>4);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	;
+
+term1: term       	       { $<node>$=$<node>1;     }
+	|  term '+' term1      { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," + "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	|  term '-' term1      { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," - "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	|   term  '|' '|' term1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," || "); strcat(str,$<node.place>4);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	;
+
+term: factor                   { $<node>$=$<node>1;     }
+	|  factor '*' factor1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str;str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," * "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+ 			       }
+	|  factor '/' factor1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," / "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	|  factor '&' '&' factor1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," && "); strcat(str,$<node.place>4);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+;
+factor1: factor                { $<node>$=$<node>1;     }
+	|  factor '*' factor1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," * "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+                               }
+	|  factor '/' factor1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>3;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," / "); strcat(str,$<node.place>3);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+                               }
+	|  factor '&' '&' factor1  { $<node.place>$=code1();
+				 int i=0,j=0; for(i=0;$<node.code[i]>1!=NULL;i++) $<node.code[i]>$=$<node.code[i]>1;
+				 for(j=0;$<node.code[j]>3!=NULL;j++) $<node.code[i+j]>$=$<node.code[j]>4;
+				 char *str; str=strdup($<node.place>$);
+				 strcat(str," = "); strcat(str,$<node.place>1); strcat(str ," && "); strcat(str,$<node.place>4);
+                                 $<node.code[i+j]>$=strdup(str); 
+				 $<node.code[i+j+1]>$=NULL;
+			       }
+	;
+factor:  nosignfactor          {  $<node>$=$<node>1;     }	
+	|   '-' nosignfactor %prec UMINUS { $<node.place>$=code1();
+					    char *str; str=strdup($<node.place>$); int i=0;
+					    if($<node.code[0]>2!=NULL) { $<node.code[0]>$=strdup($<node.code[0]>2);  i=1; }
+					    else i=0;
+					    strcat(str," = ");strcat(str," - "); strcat(str,$<node.place>2); 
+					    $<node.code[i]>$=strdup(str); $<node.code[i+1]>$=NULL;	 
+                                           }
+	;
+nosignfactor: '(' expression ')' {  $<node>$=$<node>2;  }
+	|  ID                    {  $<node>$=$<node>1; }
+	|  NUMBER 		 {  $<node>$=$<node>1; }
+	;
+%%
+int main(void)
+{
+   yyparse();   
+}
+int yyerror(void)
+{
+    printf("Error\n");
+    //exit(1);
+}

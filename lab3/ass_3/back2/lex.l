@@ -1,0 +1,32 @@
+%{
+#include "y.tab.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+%}
+%%
+class		     { yylval.node.place=strdup(yytext); return CLASS;  }
+void		     { yylval.node.place=strdup(yytext); return VOID;  }
+write		     { yylval.node.place=strdup(yytext); return WRITE;  }
+writeln		     { yylval.node.place=strdup(yytext); return WRITELN;  }
+new		     { yylval.node.place=strdup(yytext); return NEW;  }
+read		     { yylval.node.place=strdup(yytext); return READ;  }
+this		     { yylval.node.place=strdup(yytext); return THIS;  }
+null		     { yylval.node.place=strdup(yytext); return NU;  }
+true		     { yylval.node.place=strdup(yytext); return TRUE;  }
+false		     { yylval.node.place=strdup(yytext); return FALSE; }
+boolean              { yylval.node.place=strdup(yytext); return BOOLEAN; }
+int                  { yylval.node.place=strdup(yytext); return INT; }
+while                { yylval.node.place=strdup(yytext); return WHILE; }
+if                   { yylval.node.place=strdup(yytext); return IF;    }
+else                 { yylval.node.place=strdup(yytext); return ELSE;  }
+[0-9]+ |
+0x[0-9a-fA-F]+       {  yylval.node.place=strdup(yytext); return NUMBER;  }
+[a-zA-Z][a-zA-Z0-9]* {  yylval.node.place=strdup(yytext); return ID;      }
+[\t ]  {printf(" ");}
+\n   |
+.    {  return yytext[0];}
+%%
+

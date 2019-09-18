@@ -1,0 +1,17 @@
+%{
+#include "y.tab.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+%}
+%%
+[0-9]+ |
+0x[0-9a-fA-F]+       { printf(" s %s\n",yylval.node.place); yylval.node.place=strdup(yytext);printf(" s %s\n",yylval.node.code[0]); return NUMBER;  }
+[a-zA-Z][a-zA-Z0-9]* { printf(" s %s\n",yylval.node.place); yylval.node.place=strdup(yytext);printf(" s %s\n",yylval.node.code[0]); return ID;  }
+[\t ]  {printf(" ");}
+\n   { return 0; }
+.    {  return yytext[0];}
+%%
+
